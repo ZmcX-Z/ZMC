@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黑客模拟游戏</title>
+    <style>
+        body { background: black; color: #00FF00; font-family: 'Courier New', monospace; margin: 0; padding: 0; }
+        .container { padding: 20px; white-space: pre-wrap; overflow-y: auto; }
+        .output, .input-line, .task { font-size: 18px; }
+        .input-box { background: none; border: 1px solid #00FF00; color: #00FF00; padding: 5px; }
+        .cursor { display: inline-block; width: 10px; height: 20px; background-color: #00FF00; animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="output"></div>
+        <div class="input-line">
+            <span>C:\> </span>
+            <input type="text" id="input-box" class="input-box" autofocus onkeydown="handleCommand(event)">
+            <span class="cursor"></span>
+        </div>
+        <div id="task"></div>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        const inputBox = document.getElementById('input-box');
+        const taskElement = document.getElementById('task');
+        const logElement = document.getElementById('log');
+
+        const correctPassword = "hacktheplanet";
+        const files = { "flag.txt": "这是一个机密文件，密码：hacktheplanet" };
+        let systemLogs = [];
+        let tasks = [
+            { description: "破解目标系统的密码", completed: false },
+            { description: "下载文件", completed: false },
+            { description: "清除系统中的病毒", completed: false },
+            { description: "查看文件列表", completed: false },
+            { description: "读取机密文件", completed: false }
+        ];
+        let gameOver = false;
+        let isHacking = false;
+        let attemptCount = 0; // 密码错误尝试计数
+        let websiteVisited = false; // 控制是否访问了指定网站
+
+        // 游戏开始时初始化任务和日志
+        function logEvent(message) {
+            systemLogs.push(message);
+            logElement.innerHTML = systemLogs.join('<br>');
+        }
+
+        // 更新任务状态
+        function displayTasks() {
+            if (!websiteVisited) {
+                taskElement.innerHTML = "你需要先访问网站：http://Hacker 才能查看任务列表。";
+                return;
+            }
+            taskElement.innerHTML = tasks.map(task => task.completed ? `√ ${task.description} 已完成` : `× ${task.description} 未完成`).join('<br>');
+        }
+
+        // 完成任务后更新任务状态
+        function completeTask(index) {
+            tasks[index].completed = true;
+            displayTasks();
+            logEvent(`${tasks[index].description} 完成！`);
+        }
+
+        // 模拟网络攻击
+        function startNetworkAttack() {
+            logEvent("警告！系统受到黑客攻击，输入 'defend' 反击黑客！");
+            let attackProgress = 0;
+            let attackInterval = setInterval(() => {
+                attackProgress += 5;
+                output.innerHTML = `攻击进度：${attackProgress}%`;
+                if (attackProgress >= 100) {
+                    clearInterval(attackInterval);
+                    logEvent("黑客攻击成功，系统崩溃！");
+                    output.innerHTML = "系统崩溃！游戏结束。";
+                    gameOver = true;
+                }
+            }, 1000);
+
+            document.onkeydown = (event) => {
+                if (event.key === "d" && !gameOver) {
+                    clearInterval(attackInterval);
+                    logEvent("黑客攻击被成功反击！");
+                    output.innerHTML = "黑客攻击已被反击！";
+                    completeTask(1); // 下载任务完成
+                }
+            };
+        }
+
+        // 处理用户输入命令
+        function handleCommand(event) {
+            if (gameOver || event.key !== 'Enter') return;
+            const userInput = inputBox.value.trim();
+            inputBox.value = "";
+
+            if (!userInput) return;
+
+            logEvent(`> ${userInput}`);
+
+            switch (userInput) {
+                case "clear":
+                    output.innerHTML = "";
+                    logEvent("屏幕已清除。");
+                    break;
+                case correctPassword:
+                    if (!tasks[0].completed) completeTask(0);
+                    break;
+                case "hack":
+                    if (attemptCount < 3) {
+                        logEvent("请输入正确的密码！");
+                        attemptCount++;
+                    } else {
+                        logEvent("密码错误次数过多，系统锁定！");
+                        setTimeout(() => attemptCount = 0, 5000); // 锁定5秒后恢复
+                    }
+                    break;
+                case "download":
+                    if (!tasks[1].completed) {
+                        completeTask(1);
+                    }
+                    break;
+                case "clean":
+                    if (!tasks[2].completed) {
+                        logEvent("清除病毒中...");
+                        setTimeout(() => completeTask(2), 2000);
+                    }
+                    break;
+                case "help":
+                    logEvent("可用命令：clear, hack, download, clean, ls, cat flag.txt, help, visit http://Hacker");
+                    break;
+                case "ls":
+                    if (!tasks[3].completed) {
+                        logEvent("文件列表：flag.txt");
+                        completeTask(3);
+                    }
+                    break;
+                case "cat flag.txt":
+                    if (!tasks[4].completed) {
+                        logEvent(files["flag.txt"]);
+                        completeTask(4);
+                    }
+                    break;
+                case "visit http://Hacker":
+                    if (!websiteVisited) {
+                        websiteVisited = true;
+                        logEvent("成功访问网站：http://Hacker");
+                        displayTasks(); // 访问网站后显示任务列表
+                    } else {
+                        logEvent("你已经访问过该网站。");
+                    }
+                    break;
+                case "attack":
+                    if (!isHacking) {
+                        isHacking = true;
+                        startNetworkAttack(); // 启动网络攻击
+                    }
+                    break;
+                case "exit":
+                    output.innerHTML = "退出游戏，感谢参与！";
+                    logEvent("退出游戏。");
+                    gameOver = true;
+                    break;
+                default:
+                    logEvent(`未知命令：${userInput}`);
+            }
+        }
+
+        displayTasks();
+        logEvent("系统初始化完成。请输入命令。");
+
+    </script>
+</body>
+</html>
